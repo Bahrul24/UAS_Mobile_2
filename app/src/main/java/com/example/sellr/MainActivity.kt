@@ -1,5 +1,7 @@
+// Package tempat kelas ini berada
 package com.example.sellr
 
+// Import komponen Android yang diperlukan
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -10,38 +12,61 @@ import com.example.sellr.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 
+// Kelas utama yang menangani tampilan daftar makanan
 class MainActivity : AppCompatActivity() {
 
+    // View binding untuk mengakses elemen layout activity_main.xml
     private lateinit var binding: ActivityMainBinding
+
+    // Adapter untuk RecyclerView makanan
     private lateinit var foodAdapter: FoodAdapter
+
+    // List makanan yang ditampilkan
     private var foodList: List<FoodItem> = listOf()
 
+    // Firebase Authentication untuk login pengguna
     private val auth = FirebaseAuth.getInstance()
-    // 🔥 PERBAIKAN KRITIKAL: Tentukan URL Database sesuai region Anda!
-    private val database = FirebaseDatabase.getInstance("https://sellr-9c516-default-rtdb.asia-southeast1.firebasedatabase.app").reference
 
+    // Referensi ke Firebase Realtime Database (gunakan URL sesuai lokasi region Anda)
+    private val database = FirebaseDatabase.getInstance(
+        "https://sellr-9c516-default-rtdb.asia-southeast1.firebasedatabase.app"
+    ).reference
+
+    // Nama node keranjang di Firebase
     private val cartNode = "carts"
+
+    // Tag untuk log
     private val TAG = "MainActivity_DB_FIX"
 
+    // Fungsi yang dipanggil saat Activity pertama kali dibuat
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Inisialisasi view binding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Cetak URL database ke log (debug)
         Log.i(TAG, "onCreate: Firebase Database URL: ${database.toString()}")
 
-        foodList = getHardcodedProductListWithNewImages() // Gunakan fungsi baru
+        // Ambil data makanan dari fungsi hardcoded
+        foodList = getHardcodedProductListWithNewImages()
+
+        // Siapkan RecyclerView dengan adapter
         setupRecyclerView()
+
+        // Siapkan toolbar (menu)
         setupToolbar()
 
+        // Ketika tombol keranjang (FAB) ditekan
         binding.fabCart.setOnClickListener {
             Log.d(TAG, "Tombol Keranjang (FAB) diklik.")
             startActivity(Intent(this, CartActivity::class.java))
         }
     }
 
+    // Fungsi untuk membuat list makanan secara manual (sementara tidak ambil dari Firebase)
     private fun getHardcodedProductListWithNewImages(): List<FoodItem> {
-        // Mencoba URL dari sumber yang sangat publik dan stabil (misal: Wikipedia Commons, Unsplash, Pixabay direct links)
         return listOf(
             FoodItem(
                 id = "HRD001",
@@ -82,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    // Fungsi untuk mengatur toolbar menu
     private fun setupToolbar() {
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
@@ -90,34 +116,44 @@ class MainActivity : AppCompatActivity() {
                     startActivity(Intent(this, HistoryActivity::class.java))
                     true
                 }
+
                 R.id.menu_logout -> {
                     Log.d(TAG, "Menu Logout diklik.")
-                    auth.signOut()
+                    auth.signOut() // Logout pengguna
                     Toast.makeText(this, "Anda telah logout.", Toast.LENGTH_SHORT).show()
+
+                    // Arahkan ke LoginActivity
                     val intent = Intent(this, LoginActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     finish()
                     true
                 }
+
                 else -> false
             }
         }
     }
 
+    // Fungsi untuk mengatur RecyclerView makanan
     private fun setupRecyclerView() {
+        // Buat instance adapter, dengan aksi saat tombol tambah ditekan
         foodAdapter = FoodAdapter(foodList) { selectedFoodItem ->
             Log.i(TAG, "Tombol 'Tambah' untuk item '${selectedFoodItem.name}' diklik di adapter.")
-            addToCart(selectedFoodItem)
+            addToCart(selectedFoodItem) // Tambahkan ke keranjang
         }
+
+        // Konfigurasi RecyclerView
         binding.rvFood.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
+            layoutManager = LinearLayoutManager(this@MainActivity) // Tampilkan secara vertikal
             adapter = foodAdapter
         }
     }
 
+    // Fungsi untuk menambahkan makanan ke keranjang di Firebase
     private fun addToCart(foodItem: FoodItem) {
         Log.i(TAG, "Memulai proses addToCart untuk: ${foodItem.name} (ID: ${foodItem.id})")
+
         val currentUser = auth.currentUser
         if (currentUser == null) {
             Log.w(TAG, "addToCart gagal: Pengguna belum login.")
@@ -127,19 +163,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         Log.d(TAG, "Pengguna saat ini: ${currentUser.uid}")
+
+        // Referensi ke lokasi item di keranjang pengguna di Firebase
         val cartItemRef = database.child(cartNode).child(currentUser.uid).child(foodItem.id)
         Log.d(TAG, "Referensi Firebase untuk item keranjang: ${cartItemRef.toString()}")
 
-        cartItemRef.addListenerForSingleValueEvent(object: ValueEventListener {
+        // Ambil data lama untuk cek apakah sudah ada
+        cartItemRef.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 Log.d(TAG, "onDataChange dipanggil untuk item ${foodItem.id}. Snapshot ada: ${snapshot.exists()}, Value: ${snapshot.value}")
+
                 if (snapshot.exists()) {
+                    // Jika item sudah ada, tambahkan quantity
                     val currentCartItem = snapshot.getValue(CartItem::class.java)
                     val currentQuantity = currentCartItem?.quantity ?: 0
                     val newQuantity = currentQuantity + 1
+
                     Log.d(TAG, "Item ${foodItem.id} sudah ada. Kuantitas lama: $currentQuantity, Kuantitas baru: $newQuantity")
 
-                    // Update quantity saja
+                    // Update hanya bagian kuantitas
                     snapshot.ref.child("quantity").setValue(newQuantity)
                         .addOnSuccessListener {
                             Log.i(TAG, "Kuantitas untuk ${foodItem.name} berhasil diperbarui menjadi $newQuantity.")
@@ -150,8 +192,10 @@ class MainActivity : AppCompatActivity() {
                             Toast.makeText(this@MainActivity, "Gagal update kuantitas: ${e.message}", Toast.LENGTH_LONG).show()
                         }
                 } else {
+                    // Jika belum ada, buat item baru
                     Log.d(TAG, "Item ${foodItem.id} belum ada di keranjang. Membuat item baru.")
                     val newCartItem = CartItem(foodItem = foodItem, quantity = 1)
+
                     cartItemRef.setValue(newCartItem)
                         .addOnSuccessListener {
                             Log.i(TAG, "${foodItem.name} berhasil ditambahkan ke keranjang.")
@@ -165,6 +209,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onCancelled(error: DatabaseError) {
+                // Jika operasi database dibatalkan
                 Log.w(TAG, "Operasi database addToCart dibatalkan untuk ${foodItem.id}: ${error.message}", error.toException())
                 Toast.makeText(this@MainActivity, "Database error: ${error.message}", Toast.LENGTH_LONG).show()
             }
