@@ -1,77 +1,89 @@
-// Package tempat file ini berada
+// Mendeklarasikan package tempat file ini berada.
 package com.example.sellr
 
-// Import untuk logging, digunakan untuk mencatat informasi/debug di Logcat
+// Mengimpor kelas-kelas yang dibutuhkan untuk fungsionalitas adapter.
 import android.util.Log
-// Import untuk membuat tampilan layout XML menjadi View dalam kode
 import android.view.LayoutInflater
 import android.view.ViewGroup
-// Import RecyclerView
 import androidx.recyclerview.widget.RecyclerView
-// Import Glide untuk memuat gambar dari URL
-import com.bumptech.glide.Glide
-// Import view binding khusus untuk layout item makanan (item_food.xml)
-import com.example.sellr.databinding.ItemFoodBinding
-// Import formatter untuk menampilkan harga dalam format rupiah
+import com.bumptech.glide.Glide // Library untuk memuat gambar dari URL.
+import com.example.sellr.databinding.ItemFoodBinding // Kelas ViewBinding untuk layout item_food.xml.
 import java.text.NumberFormat
 import java.util.Locale
 
-// Kelas adapter untuk menampilkan daftar makanan di RecyclerView
+/**
+ * FoodAdapter adalah kelas yang menghubungkan data daftar makanan (foodList) dengan RecyclerView.
+ * Tujuannya adalah untuk menampilkan setiap item makanan yang tersedia untuk dibeli.
+ *
+ * @param foodList Daftar item makanan yang akan ditampilkan.
+ * @param onAddToCartClicked Sebuah fungsi callback yang akan dipanggil ketika tombol "Tambah ke Keranjang" diklik.
+ */
 class FoodAdapter(
-    private val foodList: List<FoodItem>, // List data makanan yang akan ditampilkan
-    private val onAddToCartClicked: (FoodItem) -> Unit // Fungsi callback saat tombol tambah ditekan
-) : RecyclerView.Adapter<FoodAdapter.FoodViewHolder>() {
+    private val foodList: List<FoodItem>,
+    private val onAddToCartClicked: (FoodItem) -> Unit // Callback untuk menangani aksi klik.
+) : RecyclerView.Adapter<FoodAdapter.FoodViewHolder>() { // Mewarisi dari kelas dasar RecyclerView.Adapter.
 
-    // ViewHolder untuk menampung view dari setiap item makanan
+    /**
+     * ViewHolder untuk item makanan. Kelas ini "memegang" referensi ke komponen UI
+     * dalam satu baris layout (item_food.xml), membuat akses dan update menjadi efisien.
+     */
     inner class FoodViewHolder(val binding: ItemFoodBinding) : RecyclerView.ViewHolder(binding.root) {
-
-        // Fungsi untuk mengisi data (bind) ke elemen UI pada item
+        /**
+         * Fungsi 'bind' ini mengambil data dari satu objek FoodItem dan menampilkannya
+         * ke dalam komponen-komponen UI yang sesuai.
+         * @param foodItem Objek data untuk item pada posisi saat ini.
+         */
         fun bind(foodItem: FoodItem) {
-            // Set teks nama makanan ke TextView
+            // Mengatur teks pada TextView nama makanan.
             binding.tvFoodName.text = foodItem.name
-
-            // Format harga menjadi format rupiah (misal Rp15.000)
+            // Membuat formatter untuk mengubah angka menjadi format mata uang Rupiah.
             val formatter = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
+            // Mengatur teks harga dengan nilai yang sudah diformat.
             binding.tvFoodPrice.text = formatter.format(foodItem.price)
 
-            // Debug log: tampilkan info nama dan URL gambar di Logcat
+            // Log untuk debugging, memastikan URL gambar yang benar sedang dimuat.
             Log.d("FoodAdapter", "Loading image for ${foodItem.name}: ${foodItem.imageUrl}")
 
-            // Gunakan Glide untuk memuat gambar dari URL ke ImageView
-            Glide.with(itemView.context)
-                .load(foodItem.imageUrl) // URL gambar makanan
-                .placeholder(R.drawable.ic_placeholder_image) // Gambar default saat loading
-                .error(R.drawable.ic_error_image) // Gambar jika gagal dimuat
-                .into(binding.ivFoodImage) // Target ImageView
+            // Menggunakan library Glide untuk memuat gambar dari URL.
+            Glide.with(itemView.context) // Memulai Glide dengan konteks dari item view.
+                .load(foodItem.imageUrl)       // Menentukan sumber gambar dari URL.
+                .placeholder(R.drawable.ic_placeholder_image) // Menampilkan gambar ini saat gambar asli sedang diunduh.
+                .error(R.drawable.ic_error_image)       // Menampilkan gambar ini jika terjadi error saat mengunduh (misal: URL salah, tidak ada internet).
+                .into(binding.ivFoodImage)     // Menentukan ImageView target tempat gambar akan ditampilkan.
 
-            // Saat tombol "Tambah ke Keranjang" ditekan
+            // Menambahkan listener pada tombol "Tambah ke Keranjang".
             binding.btnAddToCart.setOnClickListener {
-                // Debug log: cetak nama makanan yang diklik
                 Log.d("FoodAdapter", "Tombol Tambah diklik untuk: ${foodItem.name}")
-                // Jalankan fungsi callback dengan data makanan yang diklik
+                // Saat tombol diklik, panggil fungsi callback 'onAddToCartClicked' yang telah
+                // diteruskan dari Activity, sambil mengirimkan objek 'foodItem' yang diklik.
                 onAddToCartClicked(foodItem)
             }
         }
     }
 
-    // Fungsi yang dijalankan saat ViewHolder dibuat untuk pertama kali
+    /**
+     * Metode ini dipanggil oleh RecyclerView untuk membuat ViewHolder baru saat dibutuhkan.
+     * Ini hanya membuat "kerangka" atau "cetakan" kosong untuk satu baris.
+     */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FoodViewHolder {
-        // Inflate layout item_food.xml menjadi objek binding
-        val binding = ItemFoodBinding.inflate(
-            LayoutInflater.from(parent.context), // Ambil context dari parent
-            parent, // Parent ViewGroup
-            false // Jangan langsung attach ke parent
-        )
-        // Kembalikan ViewHolder baru dengan binding tersebut
+        // "Menggembungkan" (inflate) layout XML item_food.xml menjadi sebuah objek ViewBinding.
+        val binding = ItemFoodBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        // Membuat dan mengembalikan ViewHolder baru dengan binding yang baru saja dibuat.
         return FoodViewHolder(binding)
     }
 
-    // Fungsi yang menghubungkan data dengan tampilan pada posisi tertentu
+    /**
+     * Metode ini dipanggil oleh RecyclerView untuk menampilkan data pada posisi tertentu.
+     * Ia mengambil ViewHolder yang sudah ada dan mengisinya dengan data dari 'foodList'.
+     */
     override fun onBindViewHolder(holder: FoodViewHolder, position: Int) {
-        // Ambil data dari list berdasarkan posisi, dan bind ke holder
+        // Panggil fungsi 'bind' dari ViewHolder untuk mengisi UI dengan data dari item
+        // pada posisi 'position' di dalam 'foodList'.
         holder.bind(foodList[position])
     }
 
-    // Fungsi untuk menentukan jumlah total item dalam RecyclerView
-    override fun getItemCount(): Int = foodList.size // Ukuran list makanan
+    /**
+     * Metode ini mengembalikan jumlah total item dalam dataset (daftar makanan).
+     */
+    override fun getItemCount(): Int = foodList.size
 }

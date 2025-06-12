@@ -1,19 +1,40 @@
-// Mendefinisikan package tempat file ini berada
+// Mendeklarasikan package tempat file ini berada.
 package com.example.sellr
 
-// Mengimpor antarmuka Parcelable untuk mengizinkan objek dikirim antar komponen Android
+// Mengimpor interface Parcelable dari library Android.
 import android.os.Parcelable
-// Mengimpor anotasi @Parcelize untuk membuat Parcelable secara otomatis
+// Mengimpor anotasi Parcelize dari library Kotlin, untuk otomatisasi implementasi Parcelable.
 import kotlinx.parcelize.Parcelize
 
-// Menandai kelas ini dengan anotasi @Parcelize agar bisa otomatis mengimplementasikan Parcelable
+/**
+ * Anotasi ini memberitahu compiler Kotlin untuk secara otomatis menghasilkan
+ * metode-metode yang dibutuhkan oleh interface Parcelable (seperti writeToParcel dan createFromParcel).
+ * Ini sangat menyederhanakan proses membuat sebuah kelas menjadi Parcelable.
+ */
 @Parcelize
-// Data class yang merepresentasikan satu item dalam keranjang belanja
+/**
+ * Mendefinisikan sebuah 'data class' bernama CartItem.
+ * 'data class' adalah kelas khusus di Kotlin yang ideal untuk menyimpan data.
+ * Ia secara otomatis menghasilkan fungsi-fungsi berguna seperti .equals(), .hashCode(), .toString(), dan .copy().
+ * Kelas ini juga mengimplementasikan interface Parcelable.
+ */
 data class CartItem(
-    val foodItem: FoodItem = FoodItem(), // Objek FoodItem yang dibeli, default-nya objek kosong
-    var quantity: Int = 0                // Jumlah item yang ditambahkan ke keranjang, default-nya 0
-) : Parcelable {                         // Mengimplementasikan Parcelable agar bisa dikirim antar Activity/Fragment
+    // Properti pertama, menyimpan seluruh objek FoodItem, bukan hanya ID-nya.
+    // Ini adalah 'denormalisasi' data yang umum di Firebase untuk mempermudah pengambilan data.
+    // Diberi nilai default agar bisa bekerja dengan constructor kosong.
+    val foodItem: FoodItem = FoodItem(),
 
-    // Konstruktor kosong eksplisit, diperlukan agar bisa di-deserialize oleh Firebase Realtime Database
+    // Properti kedua, menyimpan jumlah item ini yang dibeli.
+    // Menggunakan 'var' karena kuantitas bisa berubah (ditambah atau dikurangi).
+    // Diberi nilai default 0.
+    var quantity: Int = 0
+) : Parcelable { // Menandakan bahwa kelas ini mengimplementasikan Parcelable.
+
+    // Ini adalah constructor sekunder tanpa argumen (constructor kosong).
+    // Firebase membutuhkannya untuk proses deserialization (mengubah data dari database menjadi objek Kotlin).
+    // Saat Firebase membuat objek CartItem, ia akan memanggil constructor kosong ini terlebih dahulu,
+    // lalu mengisi properti 'foodItem' dan 'quantity' dengan data dari database.
+    // ': this(...)' berarti constructor ini mendelegasikan pembuatannya ke constructor utama di atas,
+    // dengan memberikan nilai default.
     constructor() : this(FoodItem(), 0)
 }

@@ -1,74 +1,105 @@
-// Mendefinisikan package tempat file ini berada
+// Mendeklarasikan package tempat file ini berada.
 package com.example.sellr
 
-// Import untuk mengatur tampilan layout XML ke dalam view di Kotlin
+// Mengimpor kelas-kelas yang dibutuhkan untuk fungsionalitas adapter.
 import android.view.LayoutInflater
-// Import untuk mengatur grup view (seperti RecyclerView)
 import android.view.ViewGroup
-// Import untuk membuat adapter RecyclerView
 import androidx.recyclerview.widget.RecyclerView
-// Import library Glide untuk memuat dan menampilkan gambar dari URL
-import com.bumptech.glide.Glide
-// Import binding ke layout item_cart.xml
-import com.example.sellr.databinding.ItemCartBinding
-// Import untuk memformat angka sebagai mata uang
+import com.bumptech.glide.Glide // Library untuk memuat gambar dari URL dengan efisien.
+import com.example.sellr.databinding.ItemCartBinding // Kelas ViewBinding untuk layout item_cart.xml.
 import java.text.NumberFormat
-// Import untuk menentukan format lokal Indonesia
 import java.util.Locale
 
-// Kelas adapter untuk menampilkan daftar item keranjang di RecyclerView
+/**
+ * CartAdapter adalah kelas yang menghubungkan data item keranjang (cartList) dengan RecyclerView.
+ * Tugasnya adalah membuat dan mengisi tampilan (View) untuk setiap item dalam daftar,
+ * serta menangani interaksi pengguna pada item tersebut, seperti klik tombol.
+ *
+ * @param cartList Daftar item yang akan ditampilkan.
+ * @param onIncrement Fungsi callback yang akan dipanggil saat tombol '+' diklik.
+ * @param onDecrement Fungsi callback yang akan dipanggil saat tombol '-' diklik.
+ */
 class CartAdapter(
-    private val cartList: List<CartItem>,             // Daftar item CartItem yang akan ditampilkan di RecyclerView
-    private val onIncrement: (CartItem) -> Unit,       // Fungsi callback saat tombol "+" ditekan
-    private val onDecrement: (CartItem) -> Unit        // Fungsi callback saat tombol "-" ditekan
-) : RecyclerView.Adapter<CartAdapter.CartViewHolder>() { // Meng-extend RecyclerView.Adapter dan mendefinisikan ViewHolder-nya
+    private val cartList: List<CartItem>, // Sumber data utama untuk adapter.
+    private val onIncrement: (CartItem) -> Unit, // Fungsi yang diterima dari Activity untuk menangani logika penambahan kuantitas.
+    private val onDecrement: (CartItem) -> Unit  // Fungsi yang diterima dari Activity untuk menangani logika pengurangan kuantitas.
+) : RecyclerView.Adapter<CartAdapter.CartViewHolder>() { // Mewarisi dari kelas dasar RecyclerView.Adapter.
 
-    // Kelas ViewHolder untuk menyimpan dan mengelola tampilan satu item dalam RecyclerView
-    inner class CartViewHolder(val binding: ItemCartBinding) :
-        RecyclerView.ViewHolder(binding.root) { // binding.root adalah root view dari item_cart.xml
+    /**
+     * ViewHolder adalah kelas yang "memegang" referensi ke setiap View (Tombol, Teks, Gambar)
+     * di dalam satu baris layout item. Ini menghindari pemanggilan findViewById() yang berulang
+     * dan membuat scrolling menjadi lebih efisien.
+     */
+    inner class CartViewHolder(val binding: ItemCartBinding) : RecyclerView.ViewHolder(binding.root) {
 
-        // Fungsi untuk mengisi data dari CartItem ke dalam elemen UI
+        /**
+         * Fungsi 'bind' bertugas untuk mengambil data dari satu objek CartItem
+         * dan menampilkannya ke dalam komponen UI yang sesuai di dalam ViewHolder ini.
+         * @param cartItem Objek data untuk item pada posisi saat ini.
+         */
         fun bind(cartItem: CartItem) {
-            // Menampilkan nama makanan ke TextView
+            // Mengatur teks pada TextView nama makanan.
             binding.tvFoodName.text = cartItem.foodItem.name
-            // Menampilkan jumlah item ke TextView
+            // Mengatur teks pada TextView kuantitas. Angka harus diubah ke String.
             binding.tvQuantity.text = cartItem.quantity.toString()
 
-            // Membuat formatter untuk menampilkan harga dalam format mata uang Indonesia
+            // Membuat formatter untuk mengubah angka menjadi format mata uang Rupiah.
             val formatter = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
-            // Menampilkan harga makanan yang telah diformat ke TextView
+            // Mengatur teks pada TextView harga dengan nilai yang sudah diformat.
             binding.tvFoodPrice.text = formatter.format(cartItem.foodItem.price)
 
-            // Menggunakan Glide untuk memuat gambar makanan dari URL ke ImageView
-            Glide.with(itemView.context)
-                .load(cartItem.foodItem.imageUrl) // URL gambar makanan
-                .into(binding.ivFoodImage)        // Tujuan ImageView untuk menampilkan gambar
+            // Menggunakan library Glide untuk memuat gambar dari URL ke dalam ImageView.
+            // 'itemView.context' adalah konteks dari item view ini.
+            // 'load()' berisi URL gambar.
+            // 'into()' adalah target ImageView tempat gambar akan ditampilkan.
+            Glide.with(itemView.context).load(cartItem.foodItem.imageUrl).into(binding.ivFoodImage)
 
-            // Menambahkan aksi saat tombol "+" ditekan, panggil fungsi onIncrement
+            // Menambahkan listener pada tombol increment ('+').
+            // Saat diklik, panggil fungsi callback 'onIncrement' yang didapat dari CartActivity,
+            // sambil mengirimkan data 'cartItem' saat ini.
             binding.btnIncrement.setOnClickListener { onIncrement(cartItem) }
-            // Menambahkan aksi saat tombol "-" ditekan, panggil fungsi onDecrement
+
+            // Menambahkan listener pada tombol decrement ('-').
+            // Saat diklik, panggil fungsi callback 'onDecrement'.
             binding.btnDecrement.setOnClickListener { onDecrement(cartItem) }
         }
     }
 
-    // Fungsi yang dipanggil saat RecyclerView butuh ViewHolder baru
+    /**
+     * Metode ini dipanggil oleh RecyclerView ketika perlu membuat ViewHolder baru.
+     * Ini hanya terjadi saat tidak ada ViewHolder yang bisa didaur ulang.
+     * Tugasnya adalah membuat "kerangka" atau "cetakan" untuk satu baris.
+     *
+     * @param parent ViewGroup tempat ViewHolder baru akan ditambahkan (dalam hal ini, RecyclerView itu sendiri).
+     * @param viewType Tipe view, berguna jika ada beberapa jenis layout dalam satu RecyclerView.
+     * @return Sebuah instance CartViewHolder yang baru.
+     */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CartViewHolder {
-        // Inflate layout XML item_cart.xml dan ubah menjadi objek binding
-        val binding = ItemCartBinding.inflate(
-            LayoutInflater.from(parent.context), // Gunakan context dari parent view group
-            parent,                              // Parent dari layout yang di-inflate
-            false                                // Jangan langsung attach ke parent
-        )
-        // Kembalikan ViewHolder baru dengan binding tersebut
+        // "Menggembungkan" (inflate) layout XML item_cart.xml menjadi sebuah objek ViewBinding.
+        val binding = ItemCartBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        // Membuat dan mengembalikan ViewHolder baru dengan binding yang baru saja dibuat.
         return CartViewHolder(binding)
     }
 
-    // Fungsi untuk menghubungkan data ke tampilan pada posisi tertentu
+    /**
+     * Metode ini dipanggil oleh RecyclerView untuk menampilkan data pada posisi tertentu.
+     * Ia mengambil ViewHolder yang sudah ada dan mengisinya dengan data dari 'cartList'
+     * pada 'position' yang sesuai.
+     *
+     * @param holder ViewHolder yang akan diisi datanya.
+     * @param position Posisi item dalam daftar data.
+     */
     override fun onBindViewHolder(holder: CartViewHolder, position: Int) {
-        // Ambil item pada posisi dan tampilkan menggunakan fungsi bind
+        // Panggil fungsi 'bind' dari ViewHolder untuk mengisi UI dengan data dari item
+        // pada posisi 'position' di dalam 'cartList'.
         holder.bind(cartList[position])
     }
 
-    // Fungsi yang memberi tahu RecyclerView berapa banyak item yang ada di daftar
-    override fun getItemCount(): Int = cartList.size // Jumlah total item dalam daftar
+    /**
+     * Metode ini mengembalikan jumlah total item dalam dataset.
+     * RecyclerView menggunakan ini untuk mengetahui seberapa banyak item yang harus ditampilkan.
+     *
+     * @return Jumlah item dalam cartList.
+     */
+    override fun getItemCount(): Int = cartList.size // Sintaks singkat untuk mengembalikan ukuran dari list.
 }
