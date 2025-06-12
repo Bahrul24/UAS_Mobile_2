@@ -1,13 +1,14 @@
-package com.example.sellr
-
 import android.os.Parcelable
+import com.example.sellr.FoodItem
 import kotlinx.parcelize.Parcelize
 
+// Data class yang merepresentasikan item dalam keranjang
+// Parcelable memungkinkan objek ini dikirim antar komponen Android (Activity/Fragment)
 @Parcelize
 data class CartItem(
-    val foodItem: FoodItem = FoodItem(), // Pastikan ini adalah objek FoodItem, bukan hanya ID
-    var quantity: Int = 0
+    val foodItem: FoodItem = FoodItem(), // Objek FoodItem yang dibeli
+    var quantity: Int = 0 // Jumlah item dalam keranjang
 ) : Parcelable {
-    // Constructor kosong diperlukan untuk Firebase deserialization
+    // Konstruktor kosong untuk keperluan deserialisasi Firebase
     constructor() : this(FoodItem(), 0)
 }
